@@ -1,76 +1,65 @@
-import {spring} from 'remotion';
-import {
-	AbsoluteFill,
-	interpolate,
-	Sequence,
-	useCurrentFrame,
-	useVideoConfig,
-} from 'remotion';
-import {Logo} from './HelloWorld/Logo';
-import {Subtitle} from './HelloWorld/Subtitle';
-import {Title} from './HelloWorld/Title';
-import {z} from 'zod';
-import {zColor} from '@remotion/zod-types';
+import {CalculateMetadataFunction, Sequence, staticFile, Video} from 'remotion';
+import {useCurrentFrame} from 'remotion';
 
-export const myCompSchema = z.object({
-	titleText: z.string(),
-	titleColor: zColor(),
-	logoColor1: zColor(),
-	logoColor2: zColor(),
-});
+type Portion = {
+	to: number;
+	from: number;
+};
 
-export const HelloWorld: React.FC<z.infer<typeof myCompSchema>> = ({
-	titleText: propOne,
-	titleColor: propTwo,
-	logoColor1,
-	logoColor2,
-}) => {
+export const portions: Portion[] = [
+	{to: 10, from: 0},
+	{to: 70, from: 40},
+	{to: 90, from: 80},
+];
+
+type TimelineItem = {
+	from: number;
+	videoTime: number;
+	to: number;
+};
+
+type Props = Record<string, unknown>;
+
+const getTimeline = (portions: Portion[]): TimelineItem[] => {
+	const timeline: TimelineItem[] = [];
+
+	let duration = 0;
+	for (const portion of portions) {
+		timeline.push({videoTime: duration, from: portion.from, to: portion.to});
+		duration += portion.to - portion.from;
+	}
+
+	return timeline;
+};
+
+export const calculateMetadata: CalculateMetadataFunction<Props> = () => {
+	const lastPortion = getTimeline(portions).at(-1) as TimelineItem;
+
+	return {
+		durationInFrames:
+			lastPortion.videoTime + (lastPortion.to - lastPortion.from),
+	};
+};
+
+export const HelloWorld: React.FC<Props> = () => {
 	const frame = useCurrentFrame();
-	const {durationInFrames, fps} = useVideoConfig();
+	const timeline = getTimeline(portions);
 
-	// Animate from 0 to 1 after 25 frames
-	const logoTranslationProgress = spring({
-		frame: frame - 25,
-		fps,
-		config: {
-			damping: 100,
-		},
-	});
+	const currentPortion = timeline
+		.reverse()
+		.find((portion) => portion.videoTime <= frame);
 
-	// Move the logo up by 150 pixels once the transition starts
-	const logoTranslation = interpolate(
-		logoTranslationProgress,
-		[0, 1],
-		[0, -150]
-	);
+	if (!currentPortion) {
+		return null;
+	}
 
-	// Fade out the animation at the end
-	const opacity = interpolate(
-		frame,
-		[durationInFrames - 25, durationInFrames - 15],
-		[1, 0],
-		{
-			extrapolateLeft: 'clamp',
-			extrapolateRight: 'clamp',
-		}
-	);
-
-	// A <AbsoluteFill> is just a absolutely positioned <div>!
 	return (
-		<AbsoluteFill style={{backgroundColor: 'white'}}>
-			<AbsoluteFill style={{opacity}}>
-				<AbsoluteFill style={{transform: `translateY(${logoTranslation}px)`}}>
-					<Logo logoColor1={logoColor1} logoColor2={logoColor2} />
-				</AbsoluteFill>
-				{/* Sequences can shift the time for its children! */}
-				<Sequence from={35}>
-					<Title titleText={propOne} titleColor={propTwo} />
-				</Sequence>
-				{/* The subtitle will only enter on the 75th frame. */}
-				<Sequence from={75}>
-					<Subtitle />
-				</Sequence>
-			</AbsoluteFill>
-		</AbsoluteFill>
+		<Sequence from={currentPortion.videoTime}>
+			<Video
+				startFrom={currentPortion.from}
+				endAt={currentPortion.to}
+				src={staticFile('framer.mp4')}
+			/>
+		</Sequence>
 	);
 };
