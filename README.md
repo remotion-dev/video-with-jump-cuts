@@ -9,7 +9,7 @@
   </a>
 </p>
 
-Welcome to your Remotion project!
+This demo shows how to use a video and cut out portions of it without re-mounting the video inbetween.
 
 ## Commands
 

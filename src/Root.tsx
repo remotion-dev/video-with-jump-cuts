@@ -9,10 +9,9 @@ export const RemotionRoot: React.FC = () => {
 				component={HelloWorld}
 				durationInFrames={150}
 				fps={30}
-				width={1920}
+				width={1080}
 				height={1080}
 				calculateMetadata={calculateMetadata}
-				defaultProps={{}}
 			/>
 		</>
 	);
