@@ -34,7 +34,7 @@ bun run build
 **Upgrade Remotion**
 
 ```console
-bun run upgrade
+bun run remotion upgrade
 ```
 
 ## Docs
